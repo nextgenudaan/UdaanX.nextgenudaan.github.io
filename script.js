@@ -1,4 +1,4 @@
-// UdaanX Technology Portal - Enhanced Interactive Behaviors
+// UdaanX Digital Systems Portal - Enhanced Interactive Behaviors
 
 // ================================================================
 // THEME SYSTEM - Day/Night Toggle
@@ -137,14 +137,6 @@ function addGalleryItem(item) {
             <video src="${item.src}" muted loop playsinline></video>
             <button class="delete-btn" onclick="deleteGalleryItem(${item.id})">✕</button>
         `;
-
-        // Play video on hover
-        const video = galleryItem.querySelector('video');
-        galleryItem.addEventListener('mouseenter', () => video.play());
-        galleryItem.addEventListener('mouseleave', () => {
-            video.pause();
-            video.currentTime = 0;
-        });
     }
 
     // Insert before upload zone
@@ -367,7 +359,7 @@ window.addEventListener('load', () => {
 // CONSOLE BRANDING
 // ================================================================
 
-console.log('%c🚀 UdaanX Technology Portal', 'font-size: 20px; font-weight: bold; color: #00d4ff;');
+console.log('%c🚀 UdaanX Digital Systems Portal', 'font-size: 20px; font-weight: bold; color: #00d4ff;');
 console.log('%cBuilt with modern web standards', 'font-size: 12px; color: #94a3b8;');
 console.log('%cVisit: udaanx.nextgenudaan.in', 'font-size: 12px; color: #00ff88;');
 
@@ -381,33 +373,38 @@ const lightboxCaption = document.getElementById('lightbox-caption');
 const lightboxClose = document.querySelector('.lightbox-close');
 
 // Open Lightbox
-document.querySelectorAll('.gallery-item').forEach(item => {
-    item.addEventListener('click', () => {
-        const media = item.querySelector('img, video');
-        const captionElement = item.querySelector('.gallery-caption');
-        const caption = captionElement ? captionElement.textContent : '';
+document.addEventListener('click', (e) => {
+    const item = e.target.closest('.gallery-item');
+    if (!item) return;
 
-        lightboxMediaContainer.innerHTML = '';
+    // Prevent lightbox opening if clicking delete button
+    if (e.target.classList.contains('delete-btn')) return;
 
-        if (media.tagName === 'IMG') {
-            const newImg = document.createElement('img');
-            newImg.src = media.src;
-            newImg.alt = media.alt;
-            lightboxMediaContainer.appendChild(newImg);
-        } else if (media.tagName === 'VIDEO') {
-            const newVideo = document.createElement('video');
-            newVideo.src = media.src;
-            newVideo.controls = true;
-            newVideo.autoplay = true;
-            newVideo.muted = true; // Always muted as requested
-            newVideo.playsInline = true;
-            lightboxMediaContainer.appendChild(newVideo);
-        }
+    const media = item.querySelector('img, video');
+    const captionElement = item.querySelector('.gallery-caption');
+    const caption = captionElement ? captionElement.textContent : '';
 
-        if (lightboxCaption) lightboxCaption.textContent = caption;
-        if (lightbox) lightbox.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Prevent scroll
-    });
+    lightboxMediaContainer.innerHTML = '';
+
+    if (media.tagName === 'IMG') {
+        const newImg = document.createElement('img');
+        newImg.src = media.src;
+        newImg.alt = media.alt;
+        lightboxMediaContainer.appendChild(newImg);
+    } else if (media.tagName === 'VIDEO') {
+        const newVideo = document.createElement('video');
+        newVideo.src = media.src;
+        newVideo.controls = false; // Controls removed in big view
+        newVideo.autoplay = true;
+        newVideo.loop = true;
+        newVideo.muted = true;
+        newVideo.playsInline = true;
+        lightboxMediaContainer.appendChild(newVideo);
+    }
+
+    if (lightboxCaption) lightboxCaption.textContent = caption;
+    if (lightbox) lightbox.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent scroll
 });
 
 // Close Lightbox
@@ -438,8 +435,87 @@ if (lightbox) {
 
 // Close on Escape key
 window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && lightbox && lightbox.classList.contains('active')) {
-        closeLightbox();
+    if (e.key === 'Escape') {
+        if (lightbox && lightbox.classList.contains('active')) closeLightbox();
+        if (productModal && productModal.classList.contains('active')) closeProductModal();
+    }
+});
+
+// ================================================================
+// PRODUCT MODAL SYSTEM
+// ================================================================
+
+const productModal = document.getElementById('product-modal');
+const productDetailContainer = document.getElementById('product-detail-container');
+
+// Open Product Modal
+document.addEventListener('click', (e) => {
+    const card = e.target.closest('.product-card');
+    if (!card) return;
+
+    // Prevent modal if clicking "View System" link
+    if (e.target.classList.contains('product-link')) return;
+
+    const productId = card.getAttribute('data-product-id');
+    const detailSource = document.getElementById(`details-${productId}`);
+
+    if (detailSource && productDetailContainer) {
+        productDetailContainer.innerHTML = '';
+        const clone = detailSource.cloneNode(true);
+        clone.removeAttribute('id'); // Avoid ID duplication
+        productDetailContainer.appendChild(clone);
+
+        if (productModal) productModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+});
+
+// Close Product Modal
+const closeProductModal = () => {
+    if (productModal) productModal.classList.remove('active');
+    document.body.style.overflow = '';
+};
+
+if (productModal) {
+    const closeBtn = productModal.querySelector('.lightbox-close');
+    if (closeBtn) closeBtn.addEventListener('click', closeProductModal);
+
+    productModal.addEventListener('click', (e) => {
+        if (e.target === productModal || e.target.classList.contains('lightbox-content')) {
+            closeProductModal();
+        }
+    });
+}
+
+// ================================================================
+// UNIVERSAL VIDEO HOVER PLAYBACK
+// ================================================================
+
+// Use event delegation for hover playback
+document.addEventListener('mouseover', (e) => {
+    const item = e.target.closest('.gallery-item');
+    if (!item) return;
+
+    const video = item.querySelector('video');
+    if (video) {
+        video.play().catch(err => {
+            // Ignore autoplay/user-interaction errors
+        });
+    }
+});
+
+document.addEventListener('mouseout', (e) => {
+    const item = e.target.closest('.gallery-item');
+    if (!item) return;
+
+    // Check if we are actually leaving the item, not just moving between children
+    const relatedTarget = e.relatedTarget;
+    if (relatedTarget && item.contains(relatedTarget)) return;
+
+    const video = item.querySelector('video');
+    if (video) {
+        video.pause();
+        video.currentTime = 0;
     }
 });
 
